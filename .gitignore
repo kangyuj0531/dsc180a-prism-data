@@ -6,3 +6,16 @@ results_roberta/
 logs/
 logs_roberta/
 .ipynb_checkpoints/
+
+# generated
+csv/
+*.csv
+__pycache__/
+*.pyc
+
+# generated
+csv/
+*.csv
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
