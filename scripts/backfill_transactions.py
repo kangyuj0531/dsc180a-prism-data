@@ -1,27 +1,18 @@
 import os
 import pandas as pd
 import numpy as np
+from scripts.data_loading import consumers, accounts, transactions
 
 
-
-def build_backfill_df():
-    # individual consumer data
-    consumers = pd.read_parquet("/uss/hdsi-prismdata/q2-ucsd-consDF.pqt")
-    
-    # account information
-    accounts = pd.read_parquet("/uss/hdsi-prismdata/q2-ucsd-acctDF.pqt")
-    
-    # transactional data
-    transactions = pd.read_parquet("/uss/hdsi-prismdata/q2-ucsd-trxnDF.pqt")
-    
-    accounts = accounts.dropna(subset = ['prism_consumer_id', 'balance_date', 'balance'])
-    transactions = transactions.dropna(subset = ['prism_consumer_id', 'amount', 'credit_or_debit', 'posted_date'])
+def build_backfill_df():    
+    accounts_clean = accounts.dropna(subset = ['prism_consumer_id', 'balance_date', 'balance'])
+    transactions_clean = transactions.dropna(subset = ['prism_consumer_id', 'amount', 'credit_or_debit', 'posted_date'])
     
     df = pd.DataFrame(columns=["prism_consumer_id", "balance", "date", "credit_or_debit", "amount_change"])
         
     # ---- starting balance per consumer (checking) ----
-    acc_checking = accounts.loc[
-        accounts["account_type"].eq("CHECKING"),
+    acc_checking = accounts_clean.loc[
+        accounts_clean["account_type"].eq("CHECKING"),
         ["prism_consumer_id", "balance", "balance_date"]
     ].sort_values(["prism_consumer_id", "balance_date"])
     
@@ -34,12 +25,12 @@ def build_backfill_df():
     tx_groups = {
         cid: g.sort_values("posted_date")[["prism_consumer_id", "posted_date", "credit_or_debit", "amount"]]
               .to_records(index=False)
-        for cid, g in transactions.groupby("prism_consumer_id", sort=False)
+        for cid, g in transactions_clean.groupby("prism_consumer_id", sort=False)
     }
     
     # ---- build running balance in chronological order ----
     rows = []
-    for consumer_id in accounts["prism_consumer_id"].unique():
+    for consumer_id in accounts_clean["prism_consumer_id"].unique():
         if consumer_id not in first_checking.index:
             continue
     
