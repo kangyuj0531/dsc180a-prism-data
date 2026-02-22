@@ -19,10 +19,13 @@ matplotlib
 seaborn
 plotly
 
+tensorflow
 transformers
+lightgbm
 datasets
 accelerate
 evaluate
 sentencepiece
 tokenizers
 huggingface-hub
+shap

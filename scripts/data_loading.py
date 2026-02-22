@@ -18,7 +18,6 @@ def _find_data_path() -> Path:
     possible_paths = [
         Path("/uss/hdsi-prismdata"),      # Server absolute path
         Path("../hdsi-prismdata"),         # Relative from scripts/feature_engineering
-        Path("../uss/hdsi-prismdata"),     # Alternative relative path
     ]
     
     for path in possible_paths:
@@ -53,6 +52,23 @@ def load_all_data(base_path: Optional[str | Path] = None) -> Dict[str, pd.DataFr
         accounts["balance_date"] = pd.to_datetime(accounts["balance_date"])
     if "posted_date" in transactions.columns:
         transactions["posted_date"] = pd.to_datetime(transactions["posted_date"])
+
+    # Deduplicate transactions: prefer unique transaction id when available
+    try:
+        before = len(transactions)
+        if "prism_transaction_id" in transactions.columns:
+            transactions = (
+                transactions.drop_duplicates(subset=["prism_transaction_id"], keep="first")
+                            .reset_index(drop=True)
+            )
+        else:
+            transactions = transactions.drop_duplicates(keep="first").reset_index(drop=True)
+        removed = before - len(transactions)
+        if removed > 0:
+            print(f"Removed {removed:,} duplicate transaction rows (from {before:,} to {len(transactions):,}).")
+    except Exception:
+        # If anything goes wrong during deduplication, fall back silently to the original table
+        pass
 
     return {
         "consumers": consumers,
