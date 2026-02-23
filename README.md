@@ -1,8 +1,12 @@
 # dsc180a-prism-data
 
-This repository contains the Quarter 2 work for **DSC 180A: Prism Data**. The project focuses on  developing a behavior-based algorithm that a consumer's credit risk. We have information on the following data about the consumer: application-level credit attributes, account-level balance information, transaction-level cash flow activity, and spending category classifications.  
+This repository contains the Quarter 2 work for **DSC 180: Prism Data**. The project focuses on  developing a behavior-based algorithm that a consumer's credit risk. We have information on the following data about the consumer: application-level credit attributes, account-level balance information, transaction-level cash flow activity, and spending category classifications.  
 
 ---
+## Project Website
+
+- When published via GitHub Pages (serve from the `docs/` folder): https://kangyuj0531.github.io/dsc180a-prism-data/
+
 
 ## Repository Structure
 

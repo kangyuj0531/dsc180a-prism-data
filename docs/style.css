@@ -1,0 +1,229 @@
+/* ─── RESET & BASE ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue:       #1a73e8;
+  --dark:       #1c1c2e;
+  --light-bg:   #f7f9fc;
+  --alt-bg:     #eef2f7;
+  --text:       #333;
+  --muted:      #888;
+  --radius:     8px;
+  --max-width:  900px;
+}
+
+html { scroll-behavior: smooth; font-size: 16px; }
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: var(--text);
+  background: var(--light-bg);
+  line-height: 1.7;
+}
+
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ─── HERO ──────────────────────────────────────────────────────── */
+.hero {
+  background: var(--dark);
+  color: #fff;
+  text-align: center;
+  padding: 80px 24px 60px;
+}
+
+.hero h1 {
+  font-size: 2.6rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.hero .subtitle {
+  font-size: 1.2rem;
+  color: #aac4ff;
+  margin-bottom: 10px;
+}
+
+.hero .authors {
+  font-size: 0.95rem;
+  color: #ccc;
+  margin-bottom: 24px;
+}
+
+.btn-github {
+  display: inline-block;
+  padding: 10px 22px;
+  border: 2px solid #fff;
+  border-radius: var(--radius);
+  color: #fff;
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-github:hover {
+  background: #fff;
+  color: var(--dark);
+  text-decoration: none;
+}
+
+/* ─── NAVBAR ────────────────────────────────────────────────────── */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--dark);
+  border-top: 1px solid #2e2e4a;
+}
+
+.navbar ul {
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  gap: 8px;
+  padding: 0 16px;
+  flex-wrap: wrap;
+}
+
+.navbar li a {
+  display: block;
+  padding: 14px 18px;
+  color: #cdd8f0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  transition: color 0.2s;
+}
+
+.navbar li a:hover,
+.navbar li a.active {
+  color: #fff;
+  text-decoration: none;
+}
+
+.navbar li a.active {
+  border-bottom: 2px solid var(--blue);
+}
+
+/* ─── SECTIONS ──────────────────────────────────────────────────── */
+.section       { background: var(--light-bg); padding: 64px 24px; }
+.section-alt   { background: var(--alt-bg); }
+
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+.section h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 32px;
+  padding-bottom: 10px;
+  border-bottom: 3px solid var(--blue);
+  display: inline-block;
+}
+
+/* ─── ARTICLES (sub-sections) ───────────────────────────────────── */
+article {
+  margin-top: 40px;
+}
+
+article h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--dark);
+  margin-bottom: 12px;
+  padding-left: 12px;
+  border-left: 4px solid var(--blue);
+}
+
+/* ─── PLACEHOLDER TEXT ──────────────────────────────────────────── */
+.placeholder {
+  color: var(--muted);
+  font-style: italic;
+  background: #e8edf4;
+  border: 1px dashed #b5c3d8;
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  min-height: 60px;
+}
+
+/* ─── TEAM ──────────────────────────────────────────────────────── */
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 32px;
+  margin-top: 16px;
+}
+
+.team-card {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 28px 20px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+.team-photo-placeholder {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: #d0daea;
+  margin: 0 auto 14px;
+}
+
+.team-card h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  border: none;
+  padding: 0;
+}
+
+.team-card p {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+/* ─── FOOTER ────────────────────────────────────────────────────── */
+.footer {
+  background: var(--dark);
+  color: #ccc;
+  text-align: center;
+  padding: 40px 24px;
+}
+
+.footer h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #fff;
+}
+
+.footer ul {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.footer ul a {
+  color: #aac4ff;
+  font-size: 0.9rem;
+}
+
+.footer-note {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* ─── RESPONSIVE ────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .hero h1    { font-size: 1.8rem; }
+  .section h2 { font-size: 1.5rem; }
+  .navbar ul  { gap: 0; }
+  .navbar li a { padding: 10px 12px; }
+}
