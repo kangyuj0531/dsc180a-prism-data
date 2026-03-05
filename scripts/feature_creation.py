@@ -1002,10 +1002,10 @@ def create_all_features(df, transactions, category_mapping, accounts_df=None):
         .rename("DQ_TARGET")
     )
 
-    features_df = X.join(y, how="inner")
+    features_df = X.join(y, how="left")
 
     # Exclude consumers without a valid label (DQ_TARGET == NaN)
-    features_df = features_df[features_df["DQ_TARGET"].notna()].copy()
+    # features_df = features_df[features_df["DQ_TARGET"].notna()].copy()
     
     print("\n" + "="*70)
     print(f"FINAL FEATURE MATRIX")
