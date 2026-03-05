@@ -47,6 +47,10 @@ a:hover { text-decoration: underline; }
 .hero .authors {
   font-size: 0.95rem;
   color: #ccc;
+  margin: 4px 0;
+}
+
+.hero .authors:last-of-type {
   margin-bottom: 24px;
 }
 

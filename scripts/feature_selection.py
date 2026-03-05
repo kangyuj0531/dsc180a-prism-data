@@ -33,6 +33,7 @@ def _resolve_output(output_dir: Optional[Union[str, Path]]) -> Path:
 
 def load_features(
     output_dir: Optional[Union[str, Path]] = None,
+    features_filename: str = "features.csv",
 ) -> Tuple[pd.DataFrame, List[str]]:
     """Load ``features.csv`` and ``ranked_features.txt``.
 
@@ -50,7 +51,7 @@ def load_features(
         Feature names ordered by importance (best first).
     """
     out = _resolve_output(output_dir)
-    features_df = pd.read_csv(out / "features.csv", index_col=0)
+    features_df = pd.read_csv(out / features_filename, index_col=0)
 
     with open(out / "ranked_features.txt", "r") as fh:
         ranked_features = [line.strip() for line in fh if line.strip()]

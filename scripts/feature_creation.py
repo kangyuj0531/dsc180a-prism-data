@@ -123,6 +123,8 @@ def create_balance_features(rows_daily):
         balance__pct_below_100__all=("balance", lambda x: (x < 100).mean()),
         balance__pct_below_500__all=("balance", lambda x: (x < 500).mean()),
         n_days__all=("date", "nunique"),
+        # Total account history length: span from first to last observed date (in days)
+        account__history_days__all=("date", lambda x: (x.max() - x.min()).days),
     )
     print(f"Balance features shape: {bal_all.shape}")
     return bal_all
@@ -797,7 +799,125 @@ def create_paycheck_to_paycheck_features(rows_daily, transactions, category_mapp
     return p2p_feats
 
 
-def create_all_features(df, transactions, category_mapping):
+def create_multi_account_features(accounts_df):
+    """
+    Create features from SAVINGS, CREDIT CARD, and other account types.
+
+    Account interpretation:
+      - SAVINGS / MONEYMARKET / CASH MANAGEMENT  → assets (balance = money held)
+      - CREDIT CARD                              → liability (balance = debt owed)
+      - LINE OF CREDIT / OVERDRAFT               → revolving debt
+      - LOAN / MORTGAGE / AUTO / STUDENT /
+        HOME EQUITY                              → long-term debt
+
+    Parameters:
+    -----------
+    accounts_df : pd.DataFrame
+        Accounts table (q2-ucsd-acctDF.pqt)
+
+    Returns:
+    --------
+    pd.DataFrame
+        Multi-account features indexed by prism_consumer_id
+    """
+    print("Creating multi-account features...")
+
+    accts = accounts_df.dropna(subset=["prism_consumer_id", "balance_date", "balance"]).copy()
+    accts["balance_date"] = pd.to_datetime(accts["balance_date"])
+    accts["acct_type"] = accts["account_type"].str.upper().str.strip()
+
+    # ── per-account latest snapshot ──────────────────────────────
+    # If prism_account_id exists, deduplicate per account first so that
+    # consumers with many snapshots don't get over-counted.
+    id_col = "prism_account_id" if "prism_account_id" in accts.columns else None
+    if id_col:
+        latest = (
+            accts.sort_values("balance_date")
+                 .groupby(["prism_consumer_id", id_col], as_index=False)
+                 .last()
+        )
+    else:
+        latest = accts.sort_values("balance_date").copy()
+
+    feat_parts = []
+
+    # ── SAVINGS (liquid assets) ───────────────────────────────────
+    SAVINGS_TYPES = {"SAVINGS", "MONEYMARKET", "MONEY MARKET", "CASH MANAGEMENT"}
+    sav = latest[latest["acct_type"].isin(SAVINGS_TYPES)]
+    if len(sav) > 0:
+        feat_parts.append(
+            sav.groupby("prism_consumer_id")["balance"].agg(
+                savings__balance__latest="last",
+                savings__balance__mean="mean",
+                savings__balance__min="min",
+                savings__balance__max="max",
+                savings__n_accounts="count",
+            )
+        )
+
+    # ── CREDIT CARD (short-term revolving debt) ───────────────────
+    # Balance = amount owed → higher balance is worse
+    cc = latest[latest["acct_type"] == "CREDIT CARD"]
+    if len(cc) > 0:
+        feat_parts.append(
+            cc.groupby("prism_consumer_id")["balance"].agg(
+                credit_card__debt__latest="last",
+                credit_card__debt__mean="mean",
+                credit_card__debt__max="max",   # peak debt
+                credit_card__n_accounts="count",
+            )
+        )
+
+    # ── LINE OF CREDIT + OVERDRAFT (revolving credit lines) ───────
+    revolving = latest[latest["acct_type"].isin({"LINE OF CREDIT", "OVERDRAFT"})]
+    if len(revolving) > 0:
+        feat_parts.append(
+            revolving.groupby("prism_consumer_id")["balance"].agg(
+                revolving_debt__balance__latest="last",
+                revolving_debt__balance__mean="mean",
+                revolving_debt__n_accounts="count",
+            )
+        )
+
+    # ── Long-term debt (LOAN, MORTGAGE, AUTO, STUDENT, HOME EQUITY)
+    longterm = latest[latest["acct_type"].isin(
+        {"LOAN", "MORTGAGE", "AUTO", "STUDENT", "HOME EQUITY"}
+    )]
+    if len(longterm) > 0:
+        feat_parts.append(
+            longterm.groupby("prism_consumer_id")["balance"].agg(
+                longterm_debt__balance__total="sum",
+                longterm_debt__balance__mean="mean",
+                longterm_debt__n_accounts="count",
+            )
+        )
+
+    if not feat_parts:
+        print("  No multi-account features computed (no matching account types found).")
+        return pd.DataFrame()
+
+    multi = pd.concat(feat_parts, axis=1).fillna(0)
+
+    # ── Composite features ────────────────────────────────────────
+    sav_col  = multi["savings__balance__latest"]      if "savings__balance__latest"      in multi.columns else 0
+    cc_col   = multi["credit_card__debt__latest"]     if "credit_card__debt__latest"     in multi.columns else 0
+    rev_col  = multi["revolving_debt__balance__latest"] if "revolving_debt__balance__latest" in multi.columns else 0
+    lt_col   = multi["longterm_debt__balance__total"]  if "longterm_debt__balance__total"  in multi.columns else 0
+
+    # Net liquid position: liquid savings minus short-term debt obligations
+    multi["net_liquid_position__all_accounts"] = sav_col - cc_col - rev_col
+
+    # Total debt across all account types
+    multi["total_debt__all_accounts"] = cc_col + rev_col + lt_col
+
+    # Savings-to-debt ratio (higher = cushion against debt)
+    multi["savings_to_debt_ratio"] = sav_col / (cc_col + rev_col + lt_col + 1e-9)
+
+    print(f"Multi-account features shape: {multi.shape}")
+    return multi
+
+
+def create_all_features(df, transactions, category_mapping, accounts_df=None):
     """
     Create all features from raw data.
     
@@ -809,6 +929,9 @@ def create_all_features(df, transactions, category_mapping):
         Transaction data
     category_mapping : pd.DataFrame
         Category mapping data
+    accounts_df : pd.DataFrame, optional
+        Accounts table; when provided, adds SAVINGS / CREDIT CARD /
+        LINE OF CREDIT / long-term debt features.
         
     Returns:
     --------
@@ -848,7 +971,12 @@ def create_all_features(df, transactions, category_mapping):
     
     # Create paycheck-to-paycheck features
     p2p_feats = create_paycheck_to_paycheck_features(rows_daily, transactions, category_mapping)
-    
+
+    # Create multi-account features (SAVINGS, CREDIT CARD, etc.)
+    multi_acct_feats = None
+    if accounts_df is not None:
+        multi_acct_feats = create_multi_account_features(accounts_df)
+
     # Join all features
     print("\nJoining all features...")
     X = (
@@ -862,7 +990,10 @@ def create_all_features(df, transactions, category_mapping):
         .join(risk_feats, how="outer")
         .join(income_reg_feats, how="outer")
         .join(p2p_feats, how="outer")
-    ).replace([np.inf, -np.inf], np.nan).fillna(0)
+    )
+    if multi_acct_feats is not None and len(multi_acct_feats) > 0:
+        X = X.join(multi_acct_feats, how="left")
+    X = X.replace([np.inf, -np.inf], np.nan)
 
     y = (
         rows_daily
@@ -872,6 +1003,9 @@ def create_all_features(df, transactions, category_mapping):
     )
 
     features_df = X.join(y, how="inner")
+
+    # Exclude consumers without a valid label (DQ_TARGET == NaN)
+    features_df = features_df[features_df["DQ_TARGET"].notna()].copy()
     
     print("\n" + "="*70)
     print(f"FINAL FEATURE MATRIX")
@@ -931,6 +1065,10 @@ def print_feature_groups(features_df):
         "Low balance risk": [c for c in feature_cols if any(x in c for x in ["days_below", "consecutive_negative", "zero_crossings"])],
         "Income regularity": [c for c in feature_cols if c.startswith("paycheck__") or "coefficient_of_variation" in c or "frequency" in c or "days_between" in c],
         "Paycheck-to-paycheck": [c for c in feature_cols if "before_income" in c or "depletion" in c or "deplete" in c],
+        "Multi-account (savings/debt)": [c for c in feature_cols if any(x in c for x in [
+            "savings__", "credit_card__", "revolving_debt__", "longterm_debt__",
+            "net_liquid_position", "total_debt__all_accounts", "savings_to_debt_ratio"
+        ])],
     }
 
     print("\n" + "="*70)

@@ -190,6 +190,7 @@ def load_and_split(
     use_all: bool = False,
     apply_exclusions: bool = False,
     random_state: int = 42,
+    features_filename: str = "features.csv"
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray,
            np.ndarray, np.ndarray, np.ndarray,
            List[str], pd.DataFrame]:
@@ -221,7 +222,7 @@ def load_and_split(
     feature_names : list[str]   — the actual columns used (in order)
     features_df   : pd.DataFrame — the (possibly filtered) data
     """
-    features_df, ranked_features = load_features(output_dir)
+    features_df, ranked_features = load_features(output_dir, features_filename=features_filename)
 
     if apply_exclusions:
         features_df = apply_scoring_exclusions(features_df, verbose=True)
