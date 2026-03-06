@@ -799,16 +799,128 @@ def create_paycheck_to_paycheck_features(rows_daily, transactions, category_mapp
     return p2p_feats
 
 
+def create_consumer_balance_features(accounts_df):
+    """
+    Create consumer-level balance features aggregated across ALL account types
+    (checking, savings, credit card, etc.) using the latest snapshot per account.
+
+    This complements the checking-only time-series features by providing a
+    point-in-time cross-account picture of each consumer's balance position.
+
+    Parameters:
+    -----------
+    accounts_df : pd.DataFrame
+        Accounts table (q2-ucsd-acctDF.pqt)
+
+    Returns:
+    --------
+    pd.DataFrame
+        Consumer-level balance features indexed by prism_consumer_id
+    """
+    print("Creating consumer-level balance features (all account types)...")
+
+    accts = accounts_df.dropna(subset=["prism_consumer_id", "balance_date", "balance"]).copy()
+    accts["balance_date"] = pd.to_datetime(accts["balance_date"])
+    accts["acct_type"] = accts["account_type"].str.upper().str.strip()
+
+    # Get the latest balance snapshot per account
+    id_col = "prism_account_id" if "prism_account_id" in accts.columns else None
+    if id_col:
+        latest = (
+            accts.sort_values("balance_date")
+                 .groupby(["prism_consumer_id", id_col], as_index=False)
+                 .last()
+        )
+    else:
+        latest = accts.sort_values("balance_date").copy()
+
+    # Account type classification
+    LIQUID_TYPES     = {"CHECKING", "SAVINGS", "MONEYMARKET", "MONEY MARKET",
+                        "CASH MANAGEMENT", "PREPAID"}
+    INVESTMENT_TYPES = {"ROTH", "RETIREMENT", "BROKERAGE", "IRA", "401K",
+                        "STOCK PLAN", "HSA", "CD"}
+    REVOLVING_TYPES  = {"CREDIT CARD", "LINE OF CREDIT", "OVERDRAFT"}
+    LONGTERM_TYPES   = {"LOAN", "MORTGAGE", "AUTO", "STUDENT", "HOME EQUITY",
+                        "CONSUMER"}
+
+    liquid     = latest[latest["acct_type"].isin(LIQUID_TYPES)].copy()
+    investment = latest[latest["acct_type"].isin(INVESTMENT_TYPES)].copy()
+    revolving  = latest[latest["acct_type"].isin(REVOLVING_TYPES)].copy()
+    longterm   = latest[latest["acct_type"].isin(LONGTERM_TYPES)].copy()
+
+    parts = []
+
+    # ── Liquid asset features ───────────────────────────────────
+    if len(liquid) > 0:
+        parts.append(liquid.groupby("prism_consumer_id")["balance"].agg(
+            consumer_balance__total_liquid="sum",
+            consumer_balance__mean_liquid="mean",
+            consumer_balance__min_liquid="min",
+            consumer_balance__max_liquid="max",
+            consumer_balance__n_liquid_accounts="count",
+        ))
+
+    # ── Investment / retirement features ──────────────────────────
+    if len(investment) > 0:
+        parts.append(investment.groupby("prism_consumer_id")["balance"].agg(
+            consumer_balance__total_investment="sum",
+            consumer_balance__mean_investment="mean",
+            consumer_balance__n_investment_accounts="count",
+        ))
+
+    # ── Revolving debt features ────────────────────────────────
+    if len(revolving) > 0:
+        parts.append(revolving.groupby("prism_consumer_id")["balance"].agg(
+            consumer_balance__total_revolving_debt="sum",
+            consumer_balance__mean_revolving_debt="mean",
+            consumer_balance__n_revolving_accounts="count",
+        ))
+
+    # ── Long-term debt features ────────────────────────────────
+    if len(longterm) > 0:
+        parts.append(longterm.groupby("prism_consumer_id")["balance"].agg(
+            consumer_balance__total_longterm_debt="sum",
+            consumer_balance__mean_longterm_debt="mean",
+            consumer_balance__n_longterm_accounts="count",
+        ))
+
+    # ── Account-type diversity ───────────────────────────────────
+    parts.append(latest.groupby("prism_consumer_id")["acct_type"].agg(
+        consumer_balance__n_account_types="nunique",
+        consumer_balance__n_total_accounts="count",
+    ))
+
+    cons_feats = parts[0].copy()
+    for p in parts[1:]:
+        cons_feats = cons_feats.join(p, how="outer")
+    cons_feats = cons_feats.fillna(0)
+
+    # ── Aggregate asset / debt / net worth ──────────────────────────
+    import pandas as _pd
+    liq_col = cons_feats["consumer_balance__total_liquid"]         if "consumer_balance__total_liquid"         in cons_feats.columns else _pd.Series(0, index=cons_feats.index)
+    inv_col = cons_feats["consumer_balance__total_investment"]     if "consumer_balance__total_investment"     in cons_feats.columns else _pd.Series(0, index=cons_feats.index)
+    rev_col = cons_feats["consumer_balance__total_revolving_debt"] if "consumer_balance__total_revolving_debt" in cons_feats.columns else _pd.Series(0, index=cons_feats.index)
+    lt_col  = cons_feats["consumer_balance__total_longterm_debt"]  if "consumer_balance__total_longterm_debt"  in cons_feats.columns else _pd.Series(0, index=cons_feats.index)
+
+    cons_feats["consumer_balance__total_assets"] = liq_col + inv_col
+    cons_feats["consumer_balance__total_debt"]   = rev_col + lt_col
+    cons_feats["consumer_balance__net_worth"]    = (liq_col + inv_col) - (rev_col + lt_col)
+
+    print(f"Consumer-level balance features shape: {cons_feats.shape}")
+    return cons_feats
+
+
 def create_multi_account_features(accounts_df):
     """
     Create features from SAVINGS, CREDIT CARD, and other account types.
 
     Account interpretation:
-      - SAVINGS / MONEYMARKET / CASH MANAGEMENT  → assets (balance = money held)
-      - CREDIT CARD                              → liability (balance = debt owed)
-      - LINE OF CREDIT / OVERDRAFT               → revolving debt
+      - CHECKING / SAVINGS / MONEYMARKET / CASH MANAGEMENT / PREPAID  → liquid assets
+      - ROTH / RETIREMENT / BROKERAGE / IRA / 401K / STOCK PLAN / HSA / CD  → investments
+      - CREDIT CARD                              → short-term revolving debt
+      - LINE OF CREDIT / OVERDRAFT               → revolving credit lines
       - LOAN / MORTGAGE / AUTO / STUDENT /
-        HOME EQUITY                              → long-term debt
+        HOME EQUITY / CONSUMER                  → long-term debt
 
     Parameters:
     -----------
@@ -841,8 +953,8 @@ def create_multi_account_features(accounts_df):
 
     feat_parts = []
 
-    # ── SAVINGS (liquid assets) ───────────────────────────────────
-    SAVINGS_TYPES = {"SAVINGS", "MONEYMARKET", "MONEY MARKET", "CASH MANAGEMENT"}
+    # ── SAVINGS / liquid assets ─────────────────────────────────────
+    SAVINGS_TYPES = {"SAVINGS", "MONEYMARKET", "MONEY MARKET", "CASH MANAGEMENT", "PREPAID"}
     sav = latest[latest["acct_type"].isin(SAVINGS_TYPES)]
     if len(sav) > 0:
         feat_parts.append(
@@ -855,7 +967,20 @@ def create_multi_account_features(accounts_df):
             )
         )
 
-    # ── CREDIT CARD (short-term revolving debt) ───────────────────
+    # ── Investment / retirement accounts ──────────────────────────
+    INVESTMENT_TYPES = {"ROTH", "RETIREMENT", "BROKERAGE", "IRA", "401K",
+                        "STOCK PLAN", "HSA", "CD"}
+    inv = latest[latest["acct_type"].isin(INVESTMENT_TYPES)]
+    if len(inv) > 0:
+        feat_parts.append(
+            inv.groupby("prism_consumer_id")["balance"].agg(
+                investment__balance__total="sum",
+                investment__balance__mean="mean",
+                investment__n_accounts="count",
+            )
+        )
+
+    # ── CREDIT CARD (short-term revolving debt) ──────────────────────────
     # Balance = amount owed → higher balance is worse
     cc = latest[latest["acct_type"] == "CREDIT CARD"]
     if len(cc) > 0:
@@ -863,12 +988,12 @@ def create_multi_account_features(accounts_df):
             cc.groupby("prism_consumer_id")["balance"].agg(
                 credit_card__debt__latest="last",
                 credit_card__debt__mean="mean",
-                credit_card__debt__max="max",   # peak debt
+                credit_card__debt__max="max",
                 credit_card__n_accounts="count",
             )
         )
 
-    # ── LINE OF CREDIT + OVERDRAFT (revolving credit lines) ───────
+    # ── LINE OF CREDIT + OVERDRAFT (revolving credit lines) ───────────
     revolving = latest[latest["acct_type"].isin({"LINE OF CREDIT", "OVERDRAFT"})]
     if len(revolving) > 0:
         feat_parts.append(
@@ -879,10 +1004,9 @@ def create_multi_account_features(accounts_df):
             )
         )
 
-    # ── Long-term debt (LOAN, MORTGAGE, AUTO, STUDENT, HOME EQUITY)
-    longterm = latest[latest["acct_type"].isin(
-        {"LOAN", "MORTGAGE", "AUTO", "STUDENT", "HOME EQUITY"}
-    )]
+    # ── Long-term debt ────────────────────────────────────────
+    LONGTERM_TYPES = {"LOAN", "MORTGAGE", "AUTO", "STUDENT", "HOME EQUITY", "CONSUMER"}
+    longterm = latest[latest["acct_type"].isin(LONGTERM_TYPES)]
     if len(longterm) > 0:
         feat_parts.append(
             longterm.groupby("prism_consumer_id")["balance"].agg(
@@ -898,13 +1022,14 @@ def create_multi_account_features(accounts_df):
 
     multi = pd.concat(feat_parts, axis=1).fillna(0)
 
-    # ── Composite features ────────────────────────────────────────
-    sav_col  = multi["savings__balance__latest"]      if "savings__balance__latest"      in multi.columns else 0
-    cc_col   = multi["credit_card__debt__latest"]     if "credit_card__debt__latest"     in multi.columns else 0
-    rev_col  = multi["revolving_debt__balance__latest"] if "revolving_debt__balance__latest" in multi.columns else 0
-    lt_col   = multi["longterm_debt__balance__total"]  if "longterm_debt__balance__total"  in multi.columns else 0
+    # ── Composite features ────────────────────────────────────────────────────
+    sav_col = multi["savings__balance__latest"]        if "savings__balance__latest"        in multi.columns else 0
+    inv_col = multi["investment__balance__total"]      if "investment__balance__total"      in multi.columns else 0
+    cc_col  = multi["credit_card__debt__latest"]       if "credit_card__debt__latest"       in multi.columns else 0
+    rev_col = multi["revolving_debt__balance__latest"] if "revolving_debt__balance__latest" in multi.columns else 0
+    lt_col  = multi["longterm_debt__balance__total"]   if "longterm_debt__balance__total"   in multi.columns else 0
 
-    # Net liquid position: liquid savings minus short-term debt obligations
+    # Net liquid position: liquid savings minus all revolving debt
     multi["net_liquid_position__all_accounts"] = sav_col - cc_col - rev_col
 
     # Total debt across all account types
@@ -917,7 +1042,7 @@ def create_multi_account_features(accounts_df):
     return multi
 
 
-def create_all_features(df, transactions, category_mapping, accounts_df=None):
+def create_all_features(df, transactions, category_mapping, accounts_df=None, consumers_df=None):
     """
     Create all features from raw data.
     
@@ -930,8 +1055,11 @@ def create_all_features(df, transactions, category_mapping, accounts_df=None):
     category_mapping : pd.DataFrame
         Category mapping data
     accounts_df : pd.DataFrame, optional
-        Accounts table; when provided, adds SAVINGS / CREDIT CARD /
-        LINE OF CREDIT / long-term debt features.
+        Accounts table; when provided, adds SAVINGS and CREDIT CARD features.
+    consumers_df : pd.DataFrame, optional
+        Consumers table with prism_consumer_id and DQ_TARGET. When provided,
+        used as the base index so all consumers are retained regardless of
+        whether they have a checking account.
         
     Returns:
     --------
@@ -941,7 +1069,25 @@ def create_all_features(df, transactions, category_mapping, accounts_df=None):
     print("="*70)
     print("FEATURE CREATION PIPELINE")
     print("="*70)
-    
+
+    # Normalize prism_consumer_id to plain int64 across ALL inputs.
+    # This ensures consistent join keys regardless of whether each table was
+    # loaded from parquet (str) or CSV (int), and regardless of whether the
+    # data_loading module was reloaded in the current kernel session.
+    def _norm_id(frame):
+        if frame is not None and "prism_consumer_id" in frame.columns:
+            frame = frame.copy()
+            frame["prism_consumer_id"] = (
+                pd.to_numeric(frame["prism_consumer_id"], errors="coerce")
+                .astype(np.int64)
+            )
+        return frame
+
+    df           = _norm_id(df)
+    transactions = _norm_id(transactions)
+    accounts_df  = _norm_id(accounts_df)
+    consumers_df = _norm_id(consumers_df)
+
     # Prepare daily data
     rows_daily = prepare_daily_data(df)
     
@@ -972,34 +1118,58 @@ def create_all_features(df, transactions, category_mapping, accounts_df=None):
     # Create paycheck-to-paycheck features
     p2p_feats = create_paycheck_to_paycheck_features(rows_daily, transactions, category_mapping)
 
+    # Create consumer-level balance features (all account types)
+    cons_bal_feats = None
+    if accounts_df is not None:
+        cons_bal_feats = create_consumer_balance_features(accounts_df)
+
     # Create multi-account features (SAVINGS, CREDIT CARD, etc.)
     multi_acct_feats = None
     if accounts_df is not None:
         multi_acct_feats = create_multi_account_features(accounts_df)
 
     # Join all features
+    # Anchor to consumers_df (all consumers) when available, otherwise fall
+    # back to bal_all (checking-account holders only).
     print("\nJoining all features...")
+    if consumers_df is not None:
+        base = (
+            consumers_df[["prism_consumer_id"]]
+            .drop_duplicates()
+            .set_index("prism_consumer_id")
+        )
+    else:
+        base = bal_all[[]]  # empty-columns frame; same index as bal_all
+
     X = (
-        bal_all
-        .join([daily_30, daily_60, daily_90, daily_180], how="outer")
-        .join(tx_all, how="outer")
-        .join(cat_all, how="outer")
-        .join(cat_90, how="outer")
-        .join(group_feats, how="outer")
-        .join(fee_feats, how="outer")
-        .join(risk_feats, how="outer")
-        .join(income_reg_feats, how="outer")
-        .join(p2p_feats, how="outer")
+        base
+        .join(bal_all, how="left")
+        .join(daily_30, how="left")
+        .join(daily_60, how="left")
+        .join(daily_90, how="left")
+        .join(daily_180, how="left")
+        .join(tx_all, how="left")
+        .join(cat_all, how="left")
+        .join(cat_90, how="left")
+        .join(group_feats, how="left")
+        .join(fee_feats, how="left")
+        .join(risk_feats, how="left")
+        .join(income_reg_feats, how="left")
+        .join(p2p_feats, how="left")
     )
+    if cons_bal_feats is not None and len(cons_bal_feats) > 0:
+        X = X.join(cons_bal_feats, how="left")
     if multi_acct_feats is not None and len(multi_acct_feats) > 0:
         X = X.join(multi_acct_feats, how="left")
     X = X.replace([np.inf, -np.inf], np.nan)
 
     y = (
-        rows_daily
-        .groupby("prism_consumer_id")["DQ_TARGET"]
-        .max()
-        .rename("DQ_TARGET")
+        consumers_df.set_index("prism_consumer_id")["DQ_TARGET"]
+        if consumers_df is not None
+        else rows_daily
+            .groupby("prism_consumer_id")["DQ_TARGET"]
+            .max()
+            .rename("DQ_TARGET")
     )
 
     features_df = X.join(y, how="left")
@@ -1065,8 +1235,9 @@ def print_feature_groups(features_df):
         "Low balance risk": [c for c in feature_cols if any(x in c for x in ["days_below", "consecutive_negative", "zero_crossings"])],
         "Income regularity": [c for c in feature_cols if c.startswith("paycheck__") or "coefficient_of_variation" in c or "frequency" in c or "days_between" in c],
         "Paycheck-to-paycheck": [c for c in feature_cols if "before_income" in c or "depletion" in c or "deplete" in c],
+        "Consumer-level balance (all accounts)": [c for c in feature_cols if c.startswith("consumer_balance__")],
         "Multi-account (savings/debt)": [c for c in feature_cols if any(x in c for x in [
-            "savings__", "credit_card__", "revolving_debt__", "longterm_debt__",
+            "savings__", "investment__", "credit_card__", "revolving_debt__", "longterm_debt__",
             "net_liquid_position", "total_debt__all_accounts", "savings_to_debt_ratio"
         ])],
     }

@@ -48,6 +48,13 @@ def load_all_data(base_path: Optional[str | Path] = None) -> Dict[str, pd.DataFr
     transactions = pd.read_parquet(base / "q2-ucsd-trxnDF.pqt")
     category_mapping = pd.read_csv(base / "q2-ucsd-cat-map.csv")
 
+    # Normalize prism_consumer_id to int across all tables so that CSV round-trips
+    # (which auto-cast numeric strings to int) and parquet (which stores them as str)
+    # always produce a consistent type for joins.
+    for _df in (consumers, accounts, transactions):
+        if "prism_consumer_id" in _df.columns:
+            _df["prism_consumer_id"] = pd.to_numeric(_df["prism_consumer_id"], errors="coerce").astype("Int64")
+
     if "balance_date" in accounts.columns:
         accounts["balance_date"] = pd.to_datetime(accounts["balance_date"])
     if "posted_date" in transactions.columns:
