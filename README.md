@@ -10,7 +10,7 @@ Published via GitHub Pages (serve from the `docs/` folder): https://kangyuj0531.
 
 ## Repository structure
 
-- `feature_engineering/` — notebooks implementing feature construction and EDA (balance/time-series, cashflow, monthly features, scoring exclusions).
+- `feature_engineering/` — notebooks implementing feature construction and EDA (balance/time-series, cashflow, monthly features).
 - `scoring_exclusions/` — notebooks and rules that define pre-modeling exclusion criteria (data-quality filters, insufficient-history rules); produces filtered datasets used downstream.
 - `feature_selection/` — notebooks for automated and manual feature selection (forward/backward, RFE, mutual information, comprehensive selection).
 - `models/` — modeling notebooks and experiments (`model_comparison.ipynb`, LightGBM/XGBoost/RF/RNN notebooks).
@@ -87,6 +87,8 @@ The `scripts/` package contains reusable code for programmatic runs:
 - `data_loading.py` — utilities to load raw Parquet/CSV sources and produce standard DataFrames.
 - `backfill_transactions.py` — fills missing historical transaction rows to produce continuous daily series per account.
 - `feature_creation.py` — modular feature creation helpers (window stats, trends, aggregations).
+- `feature_selection.py` — utilities for programmatic feature selection (forward/backward, RFE, mutual information).
+- `model_data.py` — helpers for preparing model-ready datasets (train/val/test splits, label alignment).
 
 These modules enable running the pipeline outside notebooks for reproducibility or batch processing.
 
@@ -96,13 +98,9 @@ These modules enable running the pipeline outside notebooks for reproducibility 
 
 1. Environment: `python -m pip install -r requirements.txt` (or create a conda env then install).
 2. Feature generation: run `feature_engineering/feature_creation.ipynb` or import helpers from `scripts.feature_creation`.
-3. Feature selection: run notebooks in `feature_selection/` to create ranked feature lists.
-4. Model comparison: run `models/model_comparison.ipynb` to train and evaluate classifiers on selected features.
-
-Notes:
-
-- Notebooks are the recommended reproducible workflow; scripts enable programmatic runs for automation.
-- Some dependencies (GPU/CUDA PyTorch wheels) in `requirements.txt` only install on compatible systems; CPU wheels are installed otherwise.
+3. (Optional) Scoring exclusion: run `scoring_exclusions/scoring_exclusions.ipynb` to exclude consumers that does not qualify for scoring because of insufficient data.
+4. Feature selection: run notebooks in `feature_selection/` to create ranked feature lists.
+5. Model comparison: run `models/model_comparison.ipynb` to train and evaluate classifiers on selected features.
 
 ---
 
