@@ -1,127 +1,111 @@
-# dsc180a-prism-data
+# Beyond Credit Scores: Transaction-Level Modeling for Credit Risk
 
-This repository contains the Quarter 2 work for **DSC 180: Prism Data**. The project focuses on  developing a behavior-based algorithm that a consumer's credit risk. We have information on the following data about the consumer: application-level credit attributes, account-level balance information, transaction-level cash flow activity, and spending category classifications.  
+This repository contains the work for **DSC 180 HDSI Capstone with Prism Data**. The project develops behavior-based models that predict consumer credit risk using transaction-level and account-level signals. Data sources include application-level credit attributes, account balances, transaction cashflows, and spending category mappings.
 
 ---
 ## Project Website
 
-- When published via GitHub Pages (serve from the `docs/` folder): https://kangyuj0531.github.io/dsc180a-prism-data/
+Published via GitHub Pages (serve from the `docs/` folder): https://kangyuj0531.github.io/dsc180a-prism-data/
 
 
-## Repository Structure
+## Repository structure
 
-```
-Q1/
-    *files for Q1 work for reference
-
-feature_engineering/
-    01_balance_over_time.ipynb
-    02_balance_over_time.ipynb
-    balance_feature.ipynb
-    cashflow.ipynb
-    data_loading.ipynb
-    feature_creation.ipynb
-    monthly_cashflow.ipynb
-    scoring_exclusions.ipynb
-
-feature_selection/
-    feature_selection.ipynb
-    feature_selection_comprehensive.ipynb
-    feature_selection_mutual_info.ipynb
-    feature_selection_rfe.ipynb
-
-models/
-    decision_tree.ipynb
-    lightgbm.ipynb
-    randomforest.ipynb
-    rnn_model.ipynb
-
-scripts/
-    __init__.py
-    backfill_transactions.py
-    data_loading.py
-    feature_creation.py
-
-README.md
-.gitignore
-requirements.txt
-```
----
-
-## 1. Feature Engineering
-
-All feature engineering logic is located in **feature_engineering/**.
-
-Includes:
-- Consumer checking account balances over time  
-- Balance and income related features  
-- EDA on **good** and **bad** samples
-- Creating model-ready datasets
-- Scoring exclusions
- 
-After completing feature engineering, approximately 227 total features were generated, capturing patterns in balance dynamics, cashflow behavior, transaction activity, category-level spending, income characteristics, fee activity, and short-term liquidity risk.
+- `feature_engineering/` — notebooks implementing feature construction and EDA (balance/time-series, cashflow, monthly features, scoring exclusions).
+- `scoring_exclusions/` — notebooks and rules that define pre-modeling exclusion criteria (data-quality filters, insufficient-history rules); produces filtered datasets used downstream.
+- `feature_selection/` — notebooks for automated and manual feature selection (forward/backward, RFE, mutual information, comprehensive selection).
+- `models/` — modeling notebooks and experiments (`model_comparison.ipynb`, LightGBM/XGBoost/RF/RNN notebooks).
+- `scripts/` — reusable Python modules for loading, backfilling, and feature creation (`data_loading.py`, `backfill_transactions.py`, `feature_creation.py`).
+- `docs/` — static site assets for GitHub Pages (`index.html`, `style.css`, `script.js`).
+- `Q1/` — prior quarter work and reference notebooks (EDA, preprocessing, income analyses).
+- `README.md`, `requirements.txt`, `.gitignore`
 
 ---
 
-## 2. Feature Selection
+## Data
 
-All feature selection occurs in **feature_selection/**.
+The underlying raw datasets are restricted and are not included in this repository. These data cannot be publicly shared; analyses were performed on UCSD Datahub and local secure environments.
 
-Methodologies Include:
-- Forward and backward selection  
-- Comprehensive selection  
-- Mutual info selection
-- RFE selection
+## Feature engineering
 
----
+All feature engineering logic lives in `feature_engineering/` and `scripts/feature_creation.py`.
 
-## 3. Models
+Highlights:
 
-Methodologies Include:
-- Decision Trees
-- LightGBM
-- Random Forest
-- Neural Networks
-    -  RNNs
+- Daily aggregation: helper `prepare_daily_data()` converts transaction/backfill rows into end-of-day series per consumer (end-of-day balance, label, net daily change, transaction counts).
+- Windowed statistics: compute means/medians/min/max/std and simple linear trends over recent windows (7/30/90 days).
+- Event counts & liquidity signals: counts of observed days, transaction counts, and short-term liquidity features.
+- The pipeline generates ~250 feature candidates capturing balance dynamics, cashflow patterns, category-level spend, income characteristics, fees, and short-term risk.
 
-Each notebook includes accuracy, macro-F1, precision, confusion matrices, ROC-AUC, and latency comparisons.
+- Scoring exclusions: rules and filters applied before modeling to remove accounts or consumers with insufficient history, data quality issues, or anomalous activity. The `scoring_exclusions/scoring_exclusions.ipynb` notebook documents the exclusion criteria and produces filtered datasets used downstream.
 
 ---
 
-## 4. Scripts
+## Feature selection
 
-```
-scripts/
-    __init__.py
-        Initializes the scripts package for module imports.
+The `feature_selection/` notebooks produce ranked and selected feature sets using:
 
-    backfill_transactions.py
-        Fills missing historical transaction data ensures a time series of daily transactions for each consumer's checking account.
-
-    data_loading.py
-        Loads raw data sources and performs initial validation and formatting.
-
-    feature_creation.py
-        Generates engineered features from transaction and balance data.
-```
+- Forward / backward selection
+- Recursive Feature Elimination (RFE)
+- Mutual information selection
+- Comprehensive selection and consensus-based feature lists
 
 ---
 
-## 5. Reproducibility
+## Modeling
 
-### Environment Setup
-* `requirements.txt` includes CUDA-pinned PyTorch wheels; these install only on supported NVIDIA/CUDA systems. CPU-only machines (including Apple Silicon) will automatically receive CPU wheels.
-* Conda users may create an environment first, then run: `python -m pip install -r requirements.txt`
-* Quick one-liner (any environment): `python -m pip install -r requirements.txt`
+Model experiments are in `models/`. `models/model_comparison.ipynb` compares classifiers trained on selected feature sets (commonly top-50 features).
 
-## How to Run
+Typical models compared:
 
-1. Use **feature_engineering/feature_creation.ipynb** to generate cleaned datasets and features.
-2. Run notebooks in **feature_selection/** to test different methods to create various feature sets.
-3. Run notebooks in **models/** to train and evaluate specific classifiers.
+- Logistic Regression (`scikit-learn`)
+- XGBoost (`xgboost`)
+- LightGBM (`lightgbm`)
+- Random Forest (`scikit-learn`)
+- Gradient Boosting (`scikit-learn`)
+
+Other modeling experiments and notebooks (not always included in the automated comparison):
+
+- Decision Trees (`models/decision_tree.ipynb`)
+- Standalone Logistic Regression (`models/logreg.ipynb`)
+- RNN and sequence models (`models/rnn_model.ipynb`)
+- XGBoost / LightGBM individual experiment notebooks (`models/xgboost.ipynb`, `models/lightgbm.ipynb`)
+- Gradient-boosting standalone experiments (`models/gradient_boosting.ipynb`)
+
+These notebooks contain additional architecture experiments and may include alternative evaluation pipelines or data preprocessing choices.
+
+Evaluation setup:
+
+- Metric: ROC-AUC (Train / Validation / Test)
+- Split: 60 / 20 / 20 (stratified)
 
 ---
 
-## Notes
+## Scripts
 
-- All datasets found on and executed on UCSD Datahub and local laptop.
+The `scripts/` package contains reusable code for programmatic runs:
+
+- `data_loading.py` — utilities to load raw Parquet/CSV sources and produce standard DataFrames.
+- `backfill_transactions.py` — fills missing historical transaction rows to produce continuous daily series per account.
+- `feature_creation.py` — modular feature creation helpers (window stats, trends, aggregations).
+
+These modules enable running the pipeline outside notebooks for reproducibility or batch processing.
+
+---
+
+## How to run
+
+1. Environment: `python -m pip install -r requirements.txt` (or create a conda env then install).
+2. Feature generation: run `feature_engineering/feature_creation.ipynb` or import helpers from `scripts.feature_creation`.
+3. Feature selection: run notebooks in `feature_selection/` to create ranked feature lists.
+4. Model comparison: run `models/model_comparison.ipynb` to train and evaluate classifiers on selected features.
+
+Notes:
+
+- Notebooks are the recommended reproducible workflow; scripts enable programmatic runs for automation.
+- Some dependencies (GPU/CUDA PyTorch wheels) in `requirements.txt` only install on compatible systems; CPU wheels are installed otherwise.
+
+---
+
+## Docs / Website
+
+Static site assets in `docs/` are suitable for GitHub Pages. The site title is set in `docs/index.html`.
