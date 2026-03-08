@@ -73,9 +73,9 @@ Other modeling experiments and notebooks (not always included in the automated c
 
 These notebooks contain additional architecture experiments and may include alternative evaluation pipelines or data preprocessing choices.
 
-Evaluation setup:
+### Evaluation setup:
 
-- Metric: ROC-AUC (Train / Validation / Test)
+- Metrics: ROC-AUC (Train / Validation / Test), Precision, Recall, F1-Score, Train Time, Prediction Time
 - Split: 60 / 20 / 20 (stratified)
 
 ---
@@ -100,9 +100,20 @@ These modules enable running the pipeline outside notebooks for reproducibility 
 2. Feature generation: run `feature_engineering/feature_creation.ipynb` or import helpers from `scripts.feature_creation`.
 3. (Optional) Scoring exclusion: run `scoring_exclusions/scoring_exclusions.ipynb` to exclude consumers that does not qualify for scoring because of insufficient data.
 4. Feature selection: run notebooks in `feature_selection/` to create ranked feature lists.
-5. Model comparison: run `models/model_comparison.ipynb` to train and evaluate classifiers on selected features.
+5. Mdoel training: run any models from `models/` to train and evaluate classifiers on selected features.
+6. (Optional) Model comparison: run `models/model_comparison.ipynb` to compare selected models.
 
 ---
+
+## Outputs
+
+Generated outputs and evaluation artifacts are stored in the `output/` directory. Most notebooks save their evaluation metrics, figures, and CSV exports as notebook outputs and/or files under `output/`. Representative files include:
+
+- `output/features.csv`, `output/filtered_features.csv` — feature tables used for modeling.
+- `output/features_consensus_ordered.csv` — selected/ordered feature lists.
+- `output/consumer_dq_predictions.csv` — prediction exports and downstream consumer lists.
+
+To reproduce specific results, run the corresponding notebook (for example, `models/model_comparison.ipynb` for model metrics). Programmatic runners and evaluation scripts (if present) will also save metrics to `output/`.
 
 ## Docs / Website
 
