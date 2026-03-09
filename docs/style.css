@@ -4,8 +4,8 @@
 :root {
   --blue:       #1a73e8;
   --dark:       #1c1c2e;
-  --light-bg:   #f7f9fc;
-  --alt-bg:     #eef2f7;
+  --light-bg:   #ffffff;
+  --alt-bg:     #ffffff;
   --text:       #333;
   --muted:      #888;
   --radius:     8px;
@@ -113,8 +113,13 @@ a:hover { text-decoration: underline; }
 }
 
 /* ─── SECTIONS ──────────────────────────────────────────────────── */
-.section       { background: var(--light-bg); padding: 64px 24px; }
+.section       { background: var(--light-bg); padding: 40px 18px; }
 .section-alt   { background: var(--alt-bg); }
+
+/* Highlight Results when placed at the front */
+#results {
+  background: #ffffff;
+}
 
 .container {
   max-width: var(--max-width);
@@ -125,15 +130,15 @@ a:hover { text-decoration: underline; }
   font-size: 2rem;
   font-weight: 700;
   color: var(--dark);
-  margin-bottom: 32px;
-  padding-bottom: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 8px;
   border-bottom: 3px solid var(--blue);
   display: inline-block;
 }
 
 /* ─── ARTICLES (sub-sections) ───────────────────────────────────── */
 article {
-  margin-top: 40px;
+  margin-top: 20px;
 }
 
 article h3 {
