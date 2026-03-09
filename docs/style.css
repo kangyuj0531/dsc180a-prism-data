@@ -286,3 +286,56 @@ ul {
 li {
   margin-bottom: 6px;
 }
+
+/* ─── TABLE STYLES (Results) ───────────────────────────────────── */
+.table-responsive {
+  overflow-x: auto;
+  margin: 16px 0 28px;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(20,30,60,0.04);
+}
+
+.results-table caption {
+  caption-side: top;
+  font-weight: 700;
+  padding: 10px 0;
+  color: var(--dark);
+}
+
+.results-table th,
+.results-table td {
+  border: 1px solid #d6e0ef;
+  padding: 10px 12px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 0.95rem;
+}
+
+.results-table thead th {
+  background: #f1f6fb;
+  color: var(--dark);
+}
+
+.results-table tbody tr.total-row td,
+.results-table tbody tr.best-row td {
+  background: #fbfdff;
+}
+
+@media (max-width: 600px) {
+  .results-table th,
+  .results-table td { font-size: 0.9rem; padding: 8px; }
+}
+
+/* Narrow summary table used for feature distribution */
+.summary-table {
+  max-width: 520px;
+  margin: 0 auto;
+  table-layout: fixed;
+}
+
+.summary-table td { word-wrap: break-word; }

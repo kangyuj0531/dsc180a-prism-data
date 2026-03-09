@@ -225,6 +225,7 @@
             <li><strong>Precision:</strong> The proportion of consumers predicted to be delinquent that actually become delinquent.</li>
             <li><strong>Recall:</strong> The proportion of truly delinquent consumers correctly identified by the model.</li>
             <li><strong>F1 Score:</strong> The harmonic mean of precision and recall, balancing false positives and false negatives.</li>
+            <li><strong>Training Time:</strong> The computational time required to fit the model on the training dataset, indicating the algorithm's efficiency during the learning phase.</li>
             <li><strong>Prediction Time:</strong> The time required for the model to generate predictions, which is important for scalability and real-time deployment.</li>
             </ul>
         </article>
@@ -236,24 +237,125 @@
       <div class="container">
         <h2>Results</h2>
 
-        <article id="feature-importance">
-          <h3>Feature Importance</h3>
-          <p class="placeholder">[Feature importance content goes here]</p>
+        <article id="feature-summary">
+          <h3>Feature Summary</h3>
+          <p>
+            The final model used 50 engineered features covering liquidity, cashflow stability,
+            spending patterns, and distress indicators such as overdraft-related activity.
+            Table below summarizes the distribution of features across specific categories.
+          </p>
+
+          <div class="table-responsive">
+            <table class="results-table summary-table">
+              <caption>Distribution of the Top 50 Selected Features by Behavioral Category</caption>
+              <thead>
+                <tr>
+                  <th>Feature Category</th>
+                  <th>Number of Features</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Category</td><td>24</td></tr>
+                <tr><td>Transaction</td><td>9</td></tr>
+                <tr><td>Balance</td><td>8</td></tr>
+                <tr><td>Income &amp; Spending</td><td>2</td></tr>
+                <tr><td>Low Balance Risk</td><td>2</td></tr>
+                <tr><td>Overdraft &amp; Fees</td><td>2</td></tr>
+                <tr><td>Cashflow</td><td>1</td></tr>
+                <tr><td>Income Regularity</td><td>1</td></tr>
+                <tr><td>Multi-Account</td><td>1</td></tr>
+                <tr class="total-row"><td><strong>Total</strong></td><td><strong>50</strong></td></tr>
+              </tbody>
+            </table>
+          </div>
         </article>
 
         <article id="model-performance">
           <h3>Model Performance</h3>
-          <p class="placeholder">[Model performance content goes here]</p>
+          <p>
+            We evaluate several machine learning models trained on the engineered behavioral features.
+            Because the delinquency rate is relatively low, we focus on ROC-AUC and F1 rather than accuracy.
+          </p>
+
+          <div class="table-responsive">
+            <table class="results-table">
+              <caption>Final model performance comparison</caption>
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>ROC-AUC</th>
+                  <th>Precision</th>
+                  <th>Recall</th>
+                  <th>F1</th>
+                  <th>Training Time (s)</th>
+                  <th>Prediction Time (ms)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Logistic Regression</td><td>0.7525</td><td>0.1583</td><td>0.7159</td><td>0.2593</td><td>0.067</td><td>0.887</td></tr>
+                <tr><td>XGBoost</td><td>0.8061</td><td>0.1903</td><td>0.7386</td><td>0.3027</td><td>0.260</td><td>0.166</td></tr>
+                <tr><td>LightGBM</td><td>0.7637</td><td>0.1609</td><td>0.6648</td><td>0.2591</td><td>0.580</td><td>0.187</td></tr>
+                <tr><td>Random Forest</td><td>0.8001</td><td>0.1696</td><td>0.7727</td><td>0.2781</td><td>0.608</td><td>48.161</td></tr>
+                <tr class="best-row"><td><strong>Gradient Boosting</strong></td><td><strong>0.8129</strong></td><td><strong>0.2328</strong></td><td><strong>0.6364</strong></td><td><strong>0.3409</strong></td><td><strong>46.209</strong></td><td><strong>9.758</strong></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p><strong>Analysis:</strong></p>
+          <p>
+            Table compares model performance on the engineered features. Logistic Regression serves as a
+            baseline (ROC-AUC 0.7525) with relatively high recall but low precision. Tree-based models
+            (Random Forest, XGBoost, Gradient Boosting) outperform the linear baseline. Gradient Boosting
+            attains the best overall balance (ROC-AUC 0.8129, F1 0.3409), with higher precision and
+            reasonable prediction time, making it preferable for production deployment where false
+            positives are costly.
+          </p>
+        </article>
+
+        <article id="roc-curve">
+          <h3>ROC Curve Comparison</h3>
+          <figure class="figure">
+            <img src="images/roc_auc_hd.png" alt="ROC curves comparing models">
+            <figcaption>
+              ROC curves comparing the evaluated models. The Gradient Boosting model achieves the strongest separation.
+            </figcaption>
+          </figure>
+          <p>
+            The ROC curves confirm the numeric results: Gradient Boosting maintains the highest true
+            positive rate across most false positive rates, consistent with its higher ROC-AUC.
+          </p>
         </article>
 
         <article id="confusion-matrices">
-          <h3>Further Analysis: Confusion Matrices</h3>
-          <p class="placeholder">[Confusion matrices content goes here]</p>
+          <h3>Confusion Matrix Comparison</h3>
+          <figure class="figure">
+            <img src="images/confusion_matrices.png" alt="Confusion matrices for XGBoost and Gradient Boosting">
+            <figcaption>
+              Confusion matrices for XGBoost and Gradient Boosting on the test dataset.
+            </figcaption>
+          </figure>
+          <p>
+            The confusion matrices show that XGBoost achieves slightly higher recall for delinquency
+            but at the cost of more false positives. Gradient Boosting produces fewer false positives
+            while still identifying a substantial portion of delinquent consumers, explaining its
+            stronger F1 score.
+          </p>
         </article>
 
-        <article id="cash-vs-credit">
-          <h3>Cash Score vs. Credit Score</h3>
-          <p class="placeholder">[Cash score vs. credit score content goes here]</p>
+        <article id="shap-interpretation">
+          <h3>Model Interpretation Using SHAP</h3>
+          <figure class="figure">
+            <img src="images/shap.png" alt="SHAP summary plot">
+            <figcaption>
+              SHAP summary plot showing the most influential features for the Gradient Boosting model.
+            </figcaption>
+          </figure>
+          <p>
+            SHAP analysis highlights features related to account balances and financial stability as
+            key predictors. Lower liquid balances and more time spent below balance thresholds
+            are associated with higher predicted delinquency risk, indicating short-term liquidity
+            and balance stability are important behavioral signals.
+          </p>
         </article>
       </div>
     </section>
