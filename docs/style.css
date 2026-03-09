@@ -231,3 +231,54 @@ article h3 {
   .navbar ul  { gap: 0; }
   .navbar li a { padding: 10px 12px; }
 }
+
+/* ─── Images ────────────────────────────────────────────────── */
+.figure img {
+  width: 100%;
+  max-width: 750px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+figcaption {
+  text-align: center;
+}
+
+.figure-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin: 30px 0;
+}
+
+.figure-grid figure {
+  display: flex;
+  flex-direction: column;
+}
+
+.figure-grid img {
+  max-height: 350px;
+  width: 80%;
+  object-fit: contain;
+  margin-bottom: auto;
+}
+
+.figure-grid figcaption {
+  text-align: center;
+  margin-top: 10px;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ─── Bullet Points ────────────────────────────────────────────────── */
+ul {
+  padding-left: 40px;
+}
+
+li {
+  margin-bottom: 6px;
+}

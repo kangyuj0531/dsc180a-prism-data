@@ -36,7 +36,13 @@
     <section id="introduction" class="section">
       <div class="container">
         <h2>Introduction</h2>
-        <p class="placeholder">[Introduction content goes here]</p>
+        <p>
+        Traditional credit risk models rely heavily on credit bureau information such as payment history, credit utilization, and tradelines. While these systems are effective for consumers with established credit histories, they provide limited information for individuals with thin or nonexistent credit files. As a result, many consumers may be evaluated without accurately reflecting their true financial behavior.
+        </p>
+        <br>
+        <p>
+        This project investigates whether transaction-level financial data can be used to estimate credit risk directly. By analyzing behavioral signals such as income patterns, spending activity, and balance stability, we construct a behavior-based probability-of-default model that predicts delinquency risk from observed financial activity.
+        </p>
       </div>
     </section>
 
@@ -47,23 +53,114 @@
 
         <article id="data-description">
           <h3>Data Description</h3>
-          <p class="placeholder">[Data description content goes here]</p>
+        
+          <p>
+          The dataset used in this project contains financial activity data that captures how consumers manage their money over time. Rather than relying solely on traditional credit bureau information, the dataset provides detailed behavioral signals through bank account balances and transaction histories. These signals allow us to observe patterns such as income stability, spending behavior, and liquidity risk. The data is organized into four primary tables that together describe consumer financial activity:
+          </p>
+            <br>  
+        <figure class="figure">
+            <img src="images/data_tables.png" alt="Dataset structure diagram">
+            <figcaption>
+                <strong>Figure 1.</strong> Core Dataset Structure
+              </figcaption>
+          </figure>
+        
+        
         </article>
 
         <article id="eda">
           <h3>Exploratory Data Analysis</h3>
-          <p class="placeholder">[EDA content goes here]</p>
+          <p>
+          Exploratory analysis was conducted to understand the behavioral patterns present in the
+          financial data before feature engineering and modeling. The analysis focuses on balance
+          dynamics, population delinquency rates, and account composition across consumers.
+          </p>
+            <br>
+        <figure class="figure">
+            <img src="images/median_over_time.png" alt="Balance over time by delinquency status">
+            <figcaption>
+              <strong>Figure 2.</strong> Median account balance trends for delinquent and non-delinquent consumers
+            </figcaption>
+          </figure>
+
+        <div class="figure-grid">
+
+            <figure class="figure">
+              <img src="images/consumer_population.png" alt="Consumer population distribution">
+              <figcaption>
+                <strong>Figure 3.</strong> Delinquency Distribution
+              </figcaption>
+            </figure>
+        
+            <figure class="figure">
+              <img src="images/account_distribution.png" alt="Account type distribution">
+              <figcaption>
+                <strong>Figure 4.</strong> Financial Account Distribution
+              </figcaption>
+            </figure>
+          </div>
+
+            <p class="eda-summary">
+            Exploratory analysis reveals several behavioral patterns within the dataset. Consumers who eventually became delinquent tend to maintain lower median balances and exhibit greater balance volatility compared to non-delinquent consumers. The dataset is also imbalanced, with delinquent consumers representing a small portion of the population, and checking accounts comprising the majority of observed account activity.
+            </p>
+            
         </article>
 
         <article id="feature-generation">
           <h3>Feature Generation</h3>
-          <p class="placeholder">[Feature generation content goes here]</p>
+        
+          <p>
+          Raw transaction and balance data were transformed into behavioral features that
+          summarize financial activity patterns. These features capture balance dynamics,
+          income stability, spending behavior, and overall account activity across
+          multiple financial accounts.
+          </p>
+        
+          <figure class="figure">
+            <img src="images/feature_table.png" alt="Behavioral feature engineering framework">
+            <figcaption>
+              <strong>Figure 5.</strong> Behavioral Feature Engineering Framework
+            </figcaption>
+          </figure>
+        
+          <ul class="feature-list">
+            <li><strong>Balance Behavior:</strong> Statistical measures of account balances including averages, volatility, and liquidity risk across multiple time windows.</li>
+            <li><strong>Cashflow Behavior:</strong> Measures of income inflows, transaction frequency, and stability of daily cashflow patterns.</li>
+            <li><strong>Transaction Activity:</strong> Aggregate transaction volumes, credit and debit magnitudes, and credit-to-debit ratios.</li>
+            <li><strong>Category-Level Spending:</strong> Spending distributions across merchant categories including essential and discretionary expenditures.</li>
+            <li><strong>Multi-Account Features:</strong> Aggregated balances across savings, investments, credit cards, and loans to compute metrics such as total assets, debt, and savings-to-debt ratios.</li>
+          </ul>
+        
         </article>
 
         <article id="feature-selection">
           <h3>Feature Selection</h3>
-          <p class="placeholder">[Feature selection content goes here]</p>
+        
+          <p>
+          To reduce dimensionality and retain the most predictive behavioral signals, we
+          implemented a multi-stage feature selection pipeline. The process combined
+          preprocessing filters with multiple feature importance metrics to identify
+          variables that consistently contributed to predictive performance.
+          </p>
+        
+          <ul class="feature-selection-list">
+                <li><strong>Preprocessing Filters:</strong> Near-constant features were removed using a variance threshold (variance &lt; 1%), and highly correlated variables were eliminated using a correlation filter (correlation &gt; 0.95).</li>
+                <li><strong>Multi-Metric Evaluation:</strong> Remaining features were evaluated using Gradient Boosting feature importance, permutation importance, and mutual information to capture both linear and non-linear predictive relationships.</li>
+                <li><strong>Consensus Ranking:</strong> Importance scores from all three methods were normalized and combined into a weighted consensus score.</li>
+          </ul>
+
+            <figure class="figure">
+              <img src="images/shap.png" alt="Top 5 Feature Importance using SHAP Values">
+              <figcaption>
+                <strong>Figure 6.</strong> Top behavioral features contributing to delinquency prediction.
+              </figcaption>
+            </figure>
+            <br>
+          <p>
+          Using this consensus ranking, the top 50 features were selected for model training. SHAP analysis highlights several key behavioral signals driving predictions, including liquid balance levels, account history length, and low-balance frequency. These features primarily capture liquidity stability and financial activity patterns associated with delinquency risk.
+          </p>
         </article>
+          
       </div>
     </section>
 
@@ -71,16 +168,65 @@
     <section id="models" class="section">
       <div class="container">
         <h2>Models</h2>
-        <p class="placeholder">[Models overview goes here]</p>
+        <p>
+        After constructing behavioral financial features, we implemented a machine learning
+        pipeline to predict delinquency outcomes. The pipeline begins with engineered
+        behavioral signals derived from account balances, cashflow activity, transaction
+        behavior, and category-level spending patterns. These features are then processed
+        through the feature selection stage before being used to train and evaluate several
+        machine learning models.
+        </p>
+        
+        <figure class="figure">
+          <img src="images/model_pipeline.png" alt="Behavioral feature engineering and modeling pipeline">
+          <figcaption>
+            <strong>Figure 7.</strong> End-to-End Credit Risk Prediction Pipeline
+          </figcaption>
+        </figure>
 
-        <article id="modeling-approaches">
-          <h3>Modeling Approaches</h3>
-          <p class="placeholder">[Modeling approaches content goes here]</p>
+        <article id="models">
+          <h3>Models</h3>
+          <p>
+            After feature engineering and feature selection, several machine learning models
+            were trained to predict delinquency risk. The dataset was split into 60% training,
+            20% validation, and 20% test sets. The validation set was used for hyperparameter
+            tuning, while the test set was reserved for final evaluation. Because delinquency
+            is relatively rare in the dataset (approximately 8%), model performance was
+            evaluated using ROC-AUC and F1 score rather than accuracy.
+            </p>
+            
+            <ul class="model-list">
+            <li><strong>Logistic Regression:</strong> A linear baseline model used to establish a reference point for evaluating whether more complex models capture nonlinear patterns in the behavioral features.</li>
+            <li><strong>Random Forest:</strong> An ensemble tree-based method that builds multiple decision trees using bootstrapped samples and averages their predictions, allowing the model to capture nonlinear interactions between financial behavior variables.</li>
+            <li><strong>LightGBM:</strong> A gradient boosting framework optimized for tabular data that grows trees leaf-wise, improving efficiency and predictive performance on structured financial datasets.</li>
+            <li><strong>XGBoost:</strong> A gradient boosting implementation that sequentially builds trees to correct errors from previous models, incorporating regularization and efficient handling of sparse features.</li>
+            <li><strong>Gradient Boosting:</strong> The scikit-learn implementation of gradient boosting, which iteratively fits decision trees to residual errors to learn complex nonlinear relationships between behavioral signals and delinquency risk.</li>
+            </ul>
+            
+            <p>
+            All models were trained using the selected feature set from the consensus feature
+            selection pipeline. Hyperparameters were tuned on the validation set, and final
+            performance metrics were computed on the held-out test set.
+            </p>
         </article>
 
         <article id="model-evaluation">
           <h3>Model Evaluation</h3>
-          <p class="placeholder">[Model evaluation content goes here]</p>
+          <p>
+            Model performance was evaluated using several metrics commonly used in credit
+            risk modeling. Because the dataset is imbalanced, these metrics focus on the
+            model’s ability to correctly identify delinquent consumers rather than relying
+            on overall accuracy.
+            </p>
+            
+            <ul class="metric-list">
+            
+            <li><strong>ROC–AUC:</strong> Measures how well the model distinguishes between delinquent and non-delinquent consumers across all classification thresholds.</li>
+            <li><strong>Precision:</strong> The proportion of consumers predicted to be delinquent that actually become delinquent.</li>
+            <li><strong>Recall:</strong> The proportion of truly delinquent consumers correctly identified by the model.</li>
+            <li><strong>F1 Score:</strong> The harmonic mean of precision and recall, balancing false positives and false negatives.</li>
+            <li><strong>Prediction Time:</strong> The time required for the model to generate predictions, which is important for scalability and real-time deployment.</li>
+            </ul>
         </article>
       </div>
     </section>
