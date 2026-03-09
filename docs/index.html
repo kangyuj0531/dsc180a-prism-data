@@ -262,11 +262,49 @@
     <section id="conclusion" class="section">
       <div class="container">
         <h2>Conclusion</h2>
-        <p class="placeholder">[Conclusion content goes here]</p>
+        <p>
+          This project shows that transaction-level financial data can provide meaningful
+          signals for credit risk prediction. By transforming raw balance histories and
+          transaction activity into behavioral features, we built a model that captures
+          patterns related to liquidity stability, income regularity, and spending behavior.
+        </p>
+        <p>
+          Among the models we tested, Gradient Boosting performed best overall, achieving the 
+          strongest balance between predictive performance and classification quality. The 
+          results suggest that behavioral signals from bank activity can help identify the
+          risk of defaulting in ways that traditional credit bureau data may miss.
+        </p>
+        <p>
+          These findings are especially relevant for consumers with thin or limited credit histories, 
+          where traditional credit scores may not fully reflect real financial behavior. Overall, 
+          the project highlights how transaction-based features can serve as a valuable complement 
+          to modern credit risk assessment.
+        </p>
 
         <article id="next-steps">
           <h3>Next Steps</h3>
-          <p class="placeholder">[Next steps content goes here]</p>
+          
+          <p>
+            Future work could focus on improving model calibration so that predicted probabilities 
+            more closely match observed delinquency outcomes. Incorporating longer financial 
+            histories and additional behavioral signals may also strengthen predictive performance.
+          </p>
+
+          <p>
+            Another promising direction is expanding the behavioral feature set. Additional 
+            features could be created by combining spending categories, analyzing category-level 
+            spending volatility, or tracking changes in spending composition over time. These 
+            signals could provide deeper insight into financial stability and consumer behavior. 
+          </p>
+
+          <p>
+            More broadly, future work could focus on optimizing the behavioral modeling framework itself. 
+            This includes testing additional feature transformations, exploring interactions between 
+            behavioral signals, and evaluating how well the model generalizes across consumer 
+            populations. Continued improvements in feature engineering and modeling would help 
+            strengthen the reliability of transaction-based credit risk assessment.
+          </p>
+          
         </article>
       </div>
     </section>
