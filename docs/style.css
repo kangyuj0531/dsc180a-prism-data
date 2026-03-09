@@ -331,6 +331,25 @@ li {
   .results-table td { font-size: 0.9rem; padding: 8px; }
 }
 
+/* Mobile-specific tweaks for tables */
+@media (max-width: 480px) {
+  .table-responsive { -webkit-overflow-scrolling: touch; padding: 6px 0; }
+
+  /* Make the small feature summary table fill the available width on phones */
+  .summary-table {
+    max-width: 100%;
+    margin: 0 8px;
+    table-layout: auto;
+  }
+
+  /* Reduce padding slightly for cramped screens */
+  .results-table th,
+  .results-table td {
+    padding: 6px 8px;
+    font-size: 0.88rem;
+  }
+}
+
 /* Narrow summary table used for feature distribution */
 .summary-table {
   max-width: 520px;
