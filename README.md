@@ -1,6 +1,8 @@
 # Beyond Credit Scores: Transaction-Level Modeling for Credit Risk
 
-This repository contains the work for **DSC 180 HDSI Capstone with Prism Data**. The project develops behavior-based models that predict consumer credit risk using transaction-level and account-level signals. Data sources include application-level credit attributes, account balances, transaction cashflows, and spending category mappings.
+This repository contains the work for **DSC 180 HDSI Capstone with Prism Data**. The project explores whether consumer credit risk can be estimated using transaction-level financial behavior rather than relying only on traditional credit bureau signals.
+
+Instead of focusing on historical credit records alone, we use behavioral information such as account balances, income deposits, spending activity, and short term liquidity patterns. These signals are used to construct behavioral features that describe how consumers manage their money over time. Machine learning models are then trained on these features to predict the probability of delinquency.
 
 ---
 ## Project Website
@@ -17,7 +19,10 @@ Published via GitHub Pages (serve from the `docs/` folder): https://kangyuj0531.
 - `scripts/` — reusable Python modules for loading, backfilling, and feature creation (`data_loading.py`, `backfill_transactions.py`, `feature_creation.py`).
 - `docs/` — static site assets for GitHub Pages (`index.html`, `style.css`, `script.js`).
 - `Q1/` — prior quarter work and reference notebooks (EDA, preprocessing, income analyses).
-- `README.md`, `requirements.txt`, `.gitignore`
+
+- `README.md` — project overview and instructions
+- `requirements.txt` — Python dependencies
+- `.gitignore` — repository ignore rules
 
 ---
 
@@ -98,9 +103,9 @@ These modules enable running the pipeline outside notebooks for reproducibility 
 
 1. Environment: `python -m pip install -r requirements.txt` (or create a conda env then install).
 2. Feature generation: run `feature_engineering/feature_creation.ipynb` or import helpers from `scripts.feature_creation`.
-3. (Optional) Scoring exclusion: run `scoring_exclusions/scoring_exclusions.ipynb` to exclude consumers that does not qualify for scoring because of insufficient data.
+3. (Optional) Scoring exclusion: run `scoring_exclusions/scoring_exclusions.ipynb` to exclude consumers that do not qualify for scoring because of insufficient data.
 4. Feature selection: run notebooks in `feature_selection/` to create ranked feature lists.
-5. Mdoel training: run any models from `models/` to train and evaluate classifiers on selected features.
+5. Model training: run any models from `models/` to train and evaluate classifiers on selected features.
 6. (Optional) Model comparison: run `models/model_comparison.ipynb` to compare selected models.
 
 ---
@@ -115,6 +120,26 @@ Generated outputs and evaluation artifacts are stored in the `output/` directory
 
 To reproduce specific results, run the corresponding notebook (for example, `models/model_comparison.ipynb` for model metrics). Programmatic runners and evaluation scripts (if present) will also save metrics to `output/`.
 
+## Expected outputs
+
+Running the feature engineering and modeling notebooks produces:
+
+• Feature tables used for training  
+• Selected feature lists from the feature selection experiments  
+• Model evaluation metrics (ROC-AUC, precision, recall, F1)  
+• ROC curves and confusion matrices  
+• Prediction outputs for consumers in the evaluation dataset  
+
+Most results are saved either as notebook outputs or as files under the output/ directory.
+
 ## Docs / Website
 
 Static site assets in `docs/` are suitable for GitHub Pages. The site title is set in `docs/index.html`.
+
+## Future work
+
+There are several directions this project could be extended.
+
+Additional features could be created by combining spending categories, measuring spending volatility, or tracking how spending patterns change over time. Another direction would be improving model calibration so that predicted probabilities better match observed outcomes.
+
+More broadly, future work could explore how well these behavioral signals generalize across different consumer populations and financial contexts.
